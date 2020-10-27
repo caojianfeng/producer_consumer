@@ -68,11 +68,11 @@ public class ProducerConsumer{
           Product p = new Product("p(" + index + ")", this.name);
           this.buffer.put(p);
         }catch(Exception e){
-          out.println("Producer error "+ e);
+          out.println("Producer(" + name + ") error "+ e);
           break;
         }
         index++;
-        out.println("Producer run "+ index);
+        out.println("Producer(" + name + ") run "+ index);
       }
       
     }
@@ -93,9 +93,9 @@ public class ProducerConsumer{
       while(true){
         try{
           Product p = this.buffer.get();
-          out.println("Consumer run "+ p.toString());
+          out.println("Consumer(" + name + ") run "+ p.toString());
         }catch(Exception e){
-          out.println("Consumer error "+ e);
+          out.println("Consumer(" + name + ") error "+ e);
           break;
         }
       }
@@ -103,14 +103,19 @@ public class ProducerConsumer{
     }
   }
 
-  
-
   public static void main(String[] args){
     ProductBuffer buffer = new ProductBuffer();
-    Producer p = new Producer("P1",buffer);
-    Consumer c = new Consumer("C1",buffer);
-    p.start();
-    c.start();
+    
+    List<Thread> tlist = new ArrayList<Thread>();
+    tlist.add(new Producer("P1",buffer));
+    tlist.add(new Producer("P2",buffer));
+    tlist.add(new Producer("P3",buffer));
+    tlist.add(new Consumer("C1",buffer));
+    tlist.add(new Consumer("C2",buffer));
+    for (Thread t : tlist){
+      t.start();
+    }
+    
     out.println("Hello PC");
   }
 }
