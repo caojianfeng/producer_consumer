@@ -9,7 +9,7 @@ public class ProducerConsumer{
     private String name;
     private String createBy;
 
-    Product(String name ,String createBy){
+    Product(String name, String createBy){
       this.name = name;
       this.createBy = createBy;
     }
@@ -20,14 +20,33 @@ public class ProducerConsumer{
   }
 
   static class ProductBuffer{
+    
     final Semaphore empty = new Semaphore(2);
     final Semaphore full = new Semaphore(0);
     final Semaphore ioLock = new Semaphore(1);
     final ArrayList<Product> buffer = new ArrayList<>();
+    
     public void put(Product product) throws InterruptedException {
       empty.acquire();
+      ioLock.acquire();
+      
       buffer.add(product);
       out.println("put to buffer:"+product.toString());
+
+      ioLock.release();
+      full.release();
+    }
+
+    public Product get() throws InterruptedException {
+      full.acquire();
+      ioLock.acquire();
+      
+      Product p =  this.buffer.remove(0);
+      out.println("get from buffer:"+p.toString());
+      
+      ioLock.release();
+      empty.release();
+      return p;
     }
   }
 
@@ -59,10 +78,39 @@ public class ProducerConsumer{
     }
   }
 
+  static class Consumer extends Thread{
+    
+    private String name;
+    private ProductBuffer buffer;
+
+    Consumer(String name,ProductBuffer buffer){
+      this.name = name;
+      this.buffer = buffer;
+    }
+
+    public void run(){
+      
+      while(true){
+        try{
+          Product p = this.buffer.get();
+          out.println("Consumer run "+ p.toString());
+        }catch(Exception e){
+          out.println("Consumer error "+ e);
+          break;
+        }
+      }
+      
+    }
+  }
+
+  
+
   public static void main(String[] args){
     ProductBuffer buffer = new ProductBuffer();
     Producer p = new Producer("P1",buffer);
+    Consumer c = new Consumer("C1",buffer);
     p.start();
+    c.start();
     out.println("Hello PC");
   }
 }
