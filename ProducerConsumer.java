@@ -4,6 +4,9 @@ import java.util.concurrent.Semaphore;
 import static java.lang.System.out;
 
 public class ProducerConsumer{
+  private static final int MAX_BUFFER_LEN = 10;
+  private static final int PRODUCER_COUNT = 5;
+  private static final int CONSUMER_COUNT = 3;
 
   static class Product{
     private String name;
@@ -21,11 +24,14 @@ public class ProducerConsumer{
 
   static class ProductBuffer{
     
-    final Semaphore empty = new Semaphore(2);
+    Semaphore empty = null;
     final Semaphore full = new Semaphore(0);
     final Semaphore ioLock = new Semaphore(1);
     final ArrayList<Product> buffer = new ArrayList<>();
     
+    ProductBuffer(int bufferLen){
+      this.empty = new Semaphore(bufferLen);
+    }
     public void put(Product product) throws InterruptedException {
       empty.acquire();
       ioLock.acquire();
@@ -104,14 +110,18 @@ public class ProducerConsumer{
   }
 
   public static void main(String[] args){
-    ProductBuffer buffer = new ProductBuffer();
+
+    ProductBuffer buffer = new ProductBuffer(MAX_BUFFER_LEN);
     
     List<Thread> tlist = new ArrayList<Thread>();
-    tlist.add(new Producer("P1",buffer));
-    tlist.add(new Producer("P2",buffer));
-    tlist.add(new Producer("P3",buffer));
-    tlist.add(new Consumer("C1",buffer));
-    tlist.add(new Consumer("C2",buffer));
+    for(int i = 0; i < PRODUCER_COUNT; i++){
+      tlist.add(new Producer("P"+i,buffer));
+    }
+
+    for(int j = 0;j < CONSUMER_COUNT; j++){
+      tlist.add(new Consumer("C"+j,buffer));  
+    }
+    
     for (Thread t : tlist){
       t.start();
     }
